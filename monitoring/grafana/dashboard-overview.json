@@ -1,0 +1,70 @@
+{
+  "title": "StudyAI — Cost & Usage Overview",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "title": "Daily LLM Cost (USD)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "studyai_daily_cost_usd" }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 3 },
+              { "color": "red", "value": 4.5 }
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      }
+    },
+    {
+      "title": "Requests per Endpoint (rate)",
+      "type": "timeseries",
+      "gridPos": { "x": 6, "y": 0, "w": 12, "h": 8 },
+      "targets": [{ "expr": "rate(http_requests_total{job=\"fastapi\"}[5m])" }]
+    },
+    {
+      "title": "Guardrail Verdicts",
+      "type": "piechart",
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 8 },
+      "targets": [{ "expr": "sum by (verdict) (guardrail_classification_total)" }]
+    },
+    {
+      "title": "P95 Latency — LLM Endpoints",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{path=~\"/api/(sop|interview|visa).*\"}[5m])) by (le))"
+        }
+      ]
+    },
+    {
+      "title": "Token Budget Usage by User (top 10)",
+      "type": "bargauge",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [{ "expr": "topk(10, studyai_user_token_usage_daily)" }]
+    },
+    {
+      "title": "Guardrail Violations (last 24h)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 20, "w": 6, "h": 4 },
+      "targets": [{ "expr": "increase(guardrail_violations_total[24h])" }]
+    },
+    {
+      "title": "Postgres Connections",
+      "type": "timeseries",
+      "gridPos": { "x": 6, "y": 20, "w": 9, "h": 6 },
+      "targets": [{ "expr": "pg_stat_activity_count" }]
+    },
+    {
+      "title": "Redis Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "x": 15, "y": 20, "w": 9, "h": 6 },
+      "targets": [{ "expr": "redis_memory_used_bytes" }]
+    }
+  ]
+}

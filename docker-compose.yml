@@ -1,0 +1,131 @@
+version: '3.9'
+
+networks:
+  studyai_net:
+    driver: bridge
+    internal: false
+  internal_net:
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  nas_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=${NAS_IP},rw,nfsvers=4"
+      device: ":/volume1/studyai"
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    networks: [studyai_net, internal_net]
+    depends_on: [fastapi, frontend]
+
+  frontend:
+    build: ./frontend
+    networks: [internal_net]
+
+  fastapi:
+    build: ./backend
+    env_file: .env
+    environment:
+      - WORKERS=8
+    volumes:
+      - nas_data:/data
+    networks: [internal_net, studyai_net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      guardrail:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 16G
+
+  guardrail:
+    build: ./guardrail
+    networks: [internal_net]
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  postgres:
+    image: postgres:16
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - nas_data:/backup
+    networks: [internal_net]
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+    command: >
+      postgres
+      -c shared_buffers=4GB
+      -c effective_cache_size=8GB
+      -c max_connections=200
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks: [internal_net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery:
+    build: ./backend
+    command: celery -A app.tasks.celery_app worker -c 4 -Q default,llm,alerts
+    env_file: .env
+    volumes:
+      - nas_data:/data
+    networks: [internal_net, studyai_net]
+    depends_on: [redis, postgres]
+
+  celery-beat:
+    build: ./backend
+    command: celery -A app.tasks.celery_app beat --scheduler redbeat.RedBeatScheduler
+    env_file: .env
+    networks: [internal_net]
+    depends_on: [redis]
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks: [internal_net]
+
+  grafana:
+    image: grafana/grafana:latest
+    networks: [internal_net]
+    environment:
+      - GF_SERVER_ROOT_URL=https://${DOMAIN}/grafana
+    volumes:
+      - ./monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./monitoring/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./monitoring/grafana/dashboard-overview.json:/etc/grafana/provisioning/dashboards/dashboard-overview.json:ro

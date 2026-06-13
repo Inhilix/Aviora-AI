@@ -1,0 +1,10 @@
+.env
+*.pem
+nginx/certs/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+dist/
+.venv/
+*.egg-info/
