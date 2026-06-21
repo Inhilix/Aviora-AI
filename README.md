@@ -1,4 +1,4 @@
-# StudyAI Platform
+# AvioraAI Platform
 
 Self-hosted study-abroad advising platform for Bangladeshi students. FastAPI + Celery
 backend, React frontend, Postgres/pgvector, Redis, and a Haiku-powered LLM layer with
