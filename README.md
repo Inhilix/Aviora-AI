@@ -61,7 +61,7 @@ NAS (NFS mount for document storage + Postgres backups)
    UPDATE students SET is_admin = TRUE WHERE email = 'you@example.com';
    ```
 
-## Cost & rate-limit controls (Phase 2)
+## Cost & rate-limit controls 
 
 | Control | Where | Limit |
 |---|---|---|
@@ -74,7 +74,7 @@ NAS (NFS mount for document storage + Postgres backups)
 All Haiku calls go through `call_haiku_safe()` which enforces cost ceiling → PII
 stripping → token budget → call → cost recording, in that order.
 
-## Guardrail pipeline (Phase 2)
+## Guardrail pipeline 
 
 Four stages, all must pass before any LLM call:
 1. **Regex fast-check** — known jailbreak/injection phrasings (~0ms)
@@ -85,7 +85,7 @@ Four stages, all must pass before any LLM call:
 The guardrail container fails **closed**: if unreachable, requests are rejected (503),
 never silently passed through.
 
-## Anti-sycophancy (Phase 2)
+## Anti-sycophancy 
 
 `evaluate_profile_with_llm()` runs two passes:
 - Pass 1: LLM assessment anchored to a deterministic rubric score (computed in
@@ -95,7 +95,7 @@ never silently passed through.
 Profiles scoring below 40/100 get a hardcoded `PROFILE_NOT_VIABLE` verdict regardless
 of what the LLM says — the rubric floor cannot be talked around.
 
-## Data retention (Phase 2/4)
+## Data retention 
 
 - Students inactive 5 years → notified, then crypto-erased 60 days later
   (`app/tasks/data_deletion.py`, runs daily via celery-beat)
@@ -103,7 +103,7 @@ of what the LLM says — the rubric floor cannot be talked around.
   permanent erase after a 30-day grace period (cancel by logging back in)
 - `audit_logs` table is append-only (DB trigger blocks UPDATE/DELETE)
 
-## RAG knowledge base (Phase 3)
+## RAG knowledge base 
 
 `knowledge_base` table uses pgvector (768-dim, all-MiniLM-L6-v2 embeddings via the
 guardrail container's `/embed` endpoint). Seeded with visa/checklist/SOP guidance for
@@ -121,7 +121,7 @@ The frontend opens an SSE connection to `/api/sop/stream/{task_id}`, which subsc
 to a Redis pub/sub channel that the Celery worker publishes chunks to as Haiku streams
 its response. Final result also cached in Redis for polling via `/api/sop/tasks/{task_id}`.
 
-## Load testing (Phase 4)
+## Load testing 
 
 ```bash
 pip install locust
