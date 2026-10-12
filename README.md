@@ -103,6 +103,18 @@ of what the LLM says — the rubric floor cannot be talked around.
   permanent erase after a 30-day grace period (cancel by logging back in)
 - `audit_logs` table is append-only (DB trigger blocks UPDATE/DELETE)
 
+## Document privacy blur
+
+Sensitive document types (`passport`, `financial`, `transcript`, `ielts`, `lor`)
+get a heavily Gaussian-blurred JPEG preview on upload (Pillow). The Documents UI
+serves that blurred preview by default; the owner can reveal the clear original
+when on a private screen, or download the unblurred file. Non-image files
+(PDF, etc.) are download-only.
+
+- Blur helper: `backend/app/services/document_blur.py`
+- Preview API: `GET /api/documents/{id}/preview?reveal=false|true`
+- Download API: `GET /api/documents/{id}/download`
+
 ## RAG knowledge base 
 
 `knowledge_base` table uses pgvector (768-dim, all-MiniLM-L6-v2 embeddings via the

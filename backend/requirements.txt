@@ -17,3 +17,4 @@ python-multipart==0.0.9
 cryptography==42.0.7
 pgvector==0.2.5
 prometheus-fastapi-instrumentator==7.0.0
+Pillow==10.3.0
