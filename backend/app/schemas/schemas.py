@@ -101,6 +101,9 @@ class DocumentResponse(BaseModel):
     file_size_bytes: int
     uploaded_at: datetime
     expires_at: Optional[datetime]
+    is_sensitive: bool = False
+    has_blurred_preview: bool = False
+    is_image: bool = False
 
     class Config:
         from_attributes = True
